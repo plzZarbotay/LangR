@@ -1,12 +1,6 @@
-![](figures/MOT_poster.png)
-
-# Multiple Object Tracking of Military Vehicles
-
+# Multiple Object Tracking
 ___
 ## Introduction
-> This is the code for my project ___"Multiple Object Tracking for Military Vehicles"___, which is a part of my BSc in electrical engineering at Technion Israel. 
-The project was done under the supervision of Gabi Davidov PhD - Thanks for his guidance and support durring the whole process.
-
 The project can be divided into roughly 3 parts:
 
 1. __Create a Custom Dataset__:
