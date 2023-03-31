@@ -1,4 +1,5 @@
 import torch
+from PIL import Image
 from tqdm import tqdm
 
 from .deep_sort_pytorch.deep_sort import DeepSort
@@ -6,10 +7,9 @@ from .deep_sort_pytorch.utils.parser import get_config
 
 
 class MultiObjectTracker:
-    def __init__(self, video, detected_video_path, detector):
-        self.video = video
-        self.video_writer = self.video.get_video_writer(detected_video_path)
-        self.detected_video_path = detected_video_path
+    def __init__(self, image_path, detected_image_path, detector):
+        self.image = Image.open(image_path) # изменение
+        self.detected_image_path = detected_image_path
 
         self.detector = detector
         self.deepsort = self._initialize_deepsort()
@@ -17,7 +17,7 @@ class MultiObjectTracker:
     def __iter__(self):
         tracking = None
 
-        for frame in tqdm(self.video, desc='Tracking', unit='frame', total=self.video.num_frames):
+        for frame in [self.image]: # изменение
             bbox_xywh, bbox_conf, bbox_classes = self._detect_image_for_deepsort(frame)
 
             if bbox_conf is not None and len(bbox_conf):
