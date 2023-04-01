@@ -7,34 +7,35 @@ from .deep_sort_pytorch.utils.parser import get_config
 
 
 class MultiObjectTracker:
-    def __init__(self, image_path, detected_image_path, detector, max_lost):
-        self.image_path = image_path
+    def __init__(self, image_path, detected_image_path, detector):
+        self.image = Image.open(image_path) # изменение
         self.detected_image_path = detected_image_path
+
         self.detector = detector
-        self.max_lost = max_lost
-        self.trackers = []
-        self.frames_since_last_detection = 0
-        self.iou_threshold = 0.5 # default value
+        self.deepsort = self._initialize_deepsort()
 
-    def update(self, frame_idx, boxes, confidences=None, classes=None, embeddings=None):
-        if len(self.trackers) == 0:
-            self.frames_since_last_detection += 1
-            return []
+    def __iter__(self):
+        tracking = None
 
-        # вызов трекера deep_sort с передачей iou_threshold в качестве аргумента
-        outputs = self.deepsort.update(torch.Tensor(boxes), confidences, classes, embeddings, self.iou_threshold)
+        for frame in [self.image]: # изменение
+            bbox_xywh, bbox_conf, bbox_classes = self._detect_image_for_deepsort(frame)
 
-        # обновление трекеров
-        self._update_trackers_state(outputs)
+            if bbox_conf is not None and len(bbox_conf):
+                tracking = self.deepsort.update(bbox_xywh, bbox_conf, bbox_classes, frame)
+            else:
+                self.deepsort.increment_ages()
+            yield frame, tracking
 
-        # удаление потерянных трекеров
-        self._remove_lost_trackers()
+    def _detect_image_for_deepsort(self, image):
+        """
+        Convert detections from YOLOv5 output to the needed format in DeepSORT.
+        """
+        bbox_df = self.detector(image).pandas().xywh[0]
+        bbox_xywh = torch.Tensor(bbox_df[['xcenter', 'ycenter', 'width', 'height']].to_numpy())
+        bbox_conf = torch.Tensor(bbox_df[['confidence']].to_numpy())
+        bbox_classes = torch.Tensor(bbox_df[['class']].to_numpy())
+        return bbox_xywh, bbox_conf, bbox_classes
 
-        # сохранение изображения с рамками вокруг отслеживаемых объектов
-        self._save_image_with_boxes(frame_idx)
-
-        # возвращение рамок вокруг отслеживаемых объектов
-        return self.get_boxes(frame_idx)
     @staticmethod
     def _initialize_deepsort():
         cfg = get_config()
