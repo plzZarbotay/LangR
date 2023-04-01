@@ -6,18 +6,19 @@ from .deep_sort_pytorch.deep_sort import DeepSort
 from .deep_sort_pytorch.utils.parser import get_config
 
 
+
 class MultiObjectTracker:
-    def __init__(self, image_path, detected_image_path, detector):
-        self.image = Image.open(image_path) # изменение
+    def __init__(self, image_path, detected_image_path, detector, iou_threshold=0.5, max_lost=5):  # добавлены параметры
+        self.image = Image.open(image_path)
         self.detected_image_path = detected_image_path
 
         self.detector = detector
-        self.deepsort = self._initialize_deepsort()
+        self.deepsort = self._initialize_deepsort(iou_threshold, max_lost)  # передаем аргументы
 
     def __iter__(self):
         tracking = None
 
-        for frame in [self.image]: # изменение
+        for frame in [self.image]:
             bbox_xywh, bbox_conf, bbox_classes = self._detect_image_for_deepsort(frame)
 
             if bbox_conf is not None and len(bbox_conf):
@@ -37,7 +38,7 @@ class MultiObjectTracker:
         return bbox_xywh, bbox_conf, bbox_classes
 
     @staticmethod
-    def _initialize_deepsort():
+    def _initialize_deepsort(iou_threshold, max_lost):
         cfg = get_config()
         cfg.merge_from_file('src/deep_sort_pytorch/configs/deep_sort.yaml')
 
@@ -50,6 +51,9 @@ class MultiObjectTracker:
             max_age=cfg.DEEPSORT.MAX_AGE,
             n_init=cfg.DEEPSORT.N_INIT,
             nn_budget=cfg.DEEPSORT.NN_BUDGET,
-            use_cuda=torch.cuda.is_available()
+            use_cuda=torch.cuda.is_available(),
+            iou_threshold=iou_threshold,  # добавлен аргумент
+            max_lost=max_lost  # добавлен аргумент
         )
         return deepsort
+
